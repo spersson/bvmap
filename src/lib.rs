@@ -59,19 +59,16 @@ impl<K: Into<usize> + From<usize>, V> Store<K, V> {
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &V> {
-        Iter {
-            inner: self
-                .vec
-                .iter()
-                .zip(self.bitvec.iter())
-                .filter_map(|(slot, occupied)| {
-                    if occupied {
-                        Some(unsafe { &*slot.value })
-                    } else {
-                        None
-                    }
-                }),
-        }
+        self.vec
+            .iter()
+            .zip(self.bitvec.iter())
+            .filter_map(|(slot, occupied)| {
+                if occupied {
+                    Some(unsafe { &*slot.value })
+                } else {
+                    None
+                }
+            })
     }
 
     pub fn remove(&mut self, k: K) -> Option<V> {
@@ -119,17 +116,6 @@ impl<K, V> Drop for Store<K, V> {
                 }
             }
         }
-    }
-}
-
-struct Iter<I> {
-    inner: I,
-}
-
-impl<'a, V: 'a, I: Iterator<Item = &'a V>> Iterator for Iter<I> {
-    type Item = &'a V;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next()
     }
 }
 
