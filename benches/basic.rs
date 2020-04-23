@@ -1,43 +1,56 @@
 use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
 use rand::{thread_rng, Rng};
-use stash::Stash;
-use stash::UniqueStash;
+use slotmap::{DefaultKey, SlotMap};
+use stash::{Stash, UniqueStash};
 use store::Store;
 
 fn fresh_inserts(c: &mut Criterion) {
     let size = 10_000;
+    let s1: Store<usize, usize> = Store::new();
+    let s2: Stash<usize, usize> = Stash::new();
+    let s3: UniqueStash<usize> = UniqueStash::new();
+    let s4: SlotMap<DefaultKey, usize> = SlotMap::new();
+
     let mut g = c.benchmark_group("Fresh Inserts");
-    let s: Store<usize, usize> = Store::new();
     g.bench_function("Store", |b| {
         b.iter_batched_ref(
-            || s.clone(),
-            |input| {
+            || s1.clone(),
+            |i| {
                 for a in 0..size {
-                    input.insert(a);
+                    i.insert(a);
                 }
             },
             BatchSize::SmallInput,
         );
     });
-    let s: Stash<usize, usize> = Stash::new();
     g.bench_function("Stash", |b| {
         b.iter_batched_ref(
-            || s.clone(),
-            |input| {
+            || s2.clone(),
+            |i| {
                 for a in 0..size {
-                    input.put(a);
+                    i.put(a);
                 }
             },
             BatchSize::SmallInput,
         );
     });
-    let s: UniqueStash<usize> = UniqueStash::new();
     g.bench_function("UniqueStash", |b| {
         b.iter_batched_ref(
-            || s.clone(),
-            |input| {
+            || s3.clone(),
+            |i| {
                 for a in 0..size {
-                    input.put(a);
+                    i.put(a);
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
+    g.bench_function("SlotMap", |b| {
+        b.iter_batched_ref(
+            || s4.clone(),
+            |i| {
+                for a in 0..size {
+                    i.insert(a);
                 }
             },
             BatchSize::SmallInput,
@@ -52,19 +65,22 @@ fn remove(c: &mut Criterion) {
     let mut s2: Stash<usize, usize> = Stash::new();
     let mut s3: UniqueStash<usize> = UniqueStash::new();
     let mut s3k = Vec::new();
+    let mut s4: SlotMap<DefaultKey, usize> = SlotMap::new();
+    let mut s4k = Vec::new();
     for a in 0..size {
         s1.insert(a);
         s2.put(a);
         s3k.push(s3.put(a));
+        s4k.push(s4.insert(a));
     }
 
     let mut g = c.benchmark_group("Remove");
     g.bench_function("Store", |b| {
         b.iter_batched_ref(
             || s1.clone(),
-            |input| {
+            |i| {
                 for _ in 0..size {
-                    input.remove(rng.gen_range(0, size));
+                    i.remove(rng.gen_range(0, size));
                 }
             },
             BatchSize::SmallInput,
@@ -73,9 +89,9 @@ fn remove(c: &mut Criterion) {
     g.bench_function("Stash", |b| {
         b.iter_batched_ref(
             || s2.clone(),
-            |input| {
+            |i| {
                 for _ in 0..size {
-                    input.take(rng.gen_range(0, size));
+                    i.take(rng.gen_range(0, size));
                 }
             },
             BatchSize::SmallInput,
@@ -84,9 +100,20 @@ fn remove(c: &mut Criterion) {
     g.bench_function("UniqueStash", |b| {
         b.iter_batched_ref(
             || s3.clone(),
-            |input| {
+            |i| {
                 for _ in 0..size {
-                    input.take(s3k[rng.gen_range(0, size)]);
+                    i.take(s3k[rng.gen_range(0, size)]);
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
+    g.bench_function("SlotMap", |b| {
+        b.iter_batched_ref(
+            || s4.clone(),
+            |i| {
+                for _ in 0..size {
+                    i.remove(s4k[rng.gen_range(0, size)]);
                 }
             },
             BatchSize::SmallInput,
@@ -101,18 +128,21 @@ fn get(c: &mut Criterion) {
     let mut s2: Stash<usize, usize> = Stash::new();
     let mut s3: UniqueStash<usize> = UniqueStash::new();
     let mut s3k = Vec::new();
+    let mut s4: SlotMap<DefaultKey, usize> = SlotMap::new();
+    let mut s4k = Vec::new();
     for a in 0..size {
         s1.insert(a);
         s2.put(a);
         s3k.push(s3.put(a));
+        s4k.push(s4.insert(a));
     }
     let mut g = c.benchmark_group("Get");
     g.bench_function("Store", |b| {
         b.iter_batched_ref(
             || s1.clone(),
-            |input| {
+            |i| {
                 for _ in 0..size {
-                    black_box(input.get(rng.gen_range(0, size)));
+                    black_box(i.get(rng.gen_range(0, size)));
                 }
             },
             BatchSize::SmallInput,
@@ -121,9 +151,9 @@ fn get(c: &mut Criterion) {
     g.bench_function("Stash", |b| {
         b.iter_batched_ref(
             || s2.clone(),
-            |input| {
+            |i| {
                 for _ in 0..size {
-                    black_box(input.get(rng.gen_range(0, size)));
+                    black_box(i.get(rng.gen_range(0, size)));
                 }
             },
             BatchSize::SmallInput,
@@ -132,9 +162,20 @@ fn get(c: &mut Criterion) {
     g.bench_function("UniqueStash", |b| {
         b.iter_batched_ref(
             || s3.clone(),
-            |input| {
+            |i| {
                 for _ in 0..size {
-                    black_box(input.get(s3k[rng.gen_range(0, size)]));
+                    black_box(i.get(s3k[rng.gen_range(0, size)]));
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
+    g.bench_function("SlotMap", |b| {
+        b.iter_batched_ref(
+            || s4.clone(),
+            |i| {
+                for _ in 0..size {
+                    black_box(i.get(s4k[rng.gen_range(0, size)]));
                 }
             },
             BatchSize::SmallInput,
@@ -149,18 +190,21 @@ fn iter(c: &mut Criterion) {
     let mut s2: Stash<usize, usize> = Stash::new();
     let mut s3: UniqueStash<usize> = UniqueStash::new();
     let mut s3k = Vec::new();
+    let mut s4: SlotMap<DefaultKey, usize> = SlotMap::new();
+    let mut s4k = Vec::new();
     for a in 0..size {
         s1.insert(a);
         s2.put(a);
         s3k.push(s3.put(a));
+        s4k.push(s4.insert(a));
     }
 
     let mut g = c.benchmark_group("Iterate");
     g.bench_function("Store", |b| {
         b.iter_batched_ref(
             || s1.clone(),
-            |input| {
-                for a in input.iter() {
+            |i| {
+                for a in i.iter() {
                     black_box(a);
                 }
             },
@@ -170,8 +214,8 @@ fn iter(c: &mut Criterion) {
     g.bench_function("Stash", |b| {
         b.iter_batched_ref(
             || s2.clone(),
-            |input| {
-                for a in input.iter() {
+            |i| {
+                for a in i.iter() {
                     black_box(a);
                 }
             },
@@ -181,8 +225,19 @@ fn iter(c: &mut Criterion) {
     g.bench_function("UniqueStash", |b| {
         b.iter_batched_ref(
             || s3.clone(),
-            |input| {
-                for a in input.iter() {
+            |i| {
+                for a in i.iter() {
+                    black_box(a);
+                }
+            },
+            BatchSize::SmallInput,
+        )
+    });
+    g.bench_function("SlotMap", |b| {
+        b.iter_batched_ref(
+            || s4.clone(),
+            |i| {
+                for a in i.iter() {
                     black_box(a);
                 }
             },
@@ -196,14 +251,15 @@ fn iter(c: &mut Criterion) {
         s1.remove(k);
         s2.take(k);
         s3.take(s3k[k]);
+        s4.remove(s4k[k]);
     }
 
     let mut g = c.benchmark_group("Iterate half-full");
     g.bench_function("Store", |b| {
         b.iter_batched_ref(
             || s1.clone(),
-            |input| {
-                for a in input.iter() {
+            |i| {
+                for a in i.iter() {
                     black_box(a);
                 }
             },
@@ -213,8 +269,8 @@ fn iter(c: &mut Criterion) {
     g.bench_function("Stash", |b| {
         b.iter_batched_ref(
             || s2.clone(),
-            |input| {
-                for a in input.iter() {
+            |i| {
+                for a in i.iter() {
                     black_box(a);
                 }
             },
@@ -224,8 +280,19 @@ fn iter(c: &mut Criterion) {
     g.bench_function("UniqueStash", |b| {
         b.iter_batched_ref(
             || s3.clone(),
-            |input| {
-                for a in input.iter() {
+            |i| {
+                for a in i.iter() {
+                    black_box(a);
+                }
+            },
+            BatchSize::SmallInput,
+        )
+    });
+    g.bench_function("SlotMap", |b| {
+        b.iter_batched_ref(
+            || s4.clone(),
+            |i| {
+                for a in i.iter() {
                     black_box(a);
                 }
             },

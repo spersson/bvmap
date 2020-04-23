@@ -12,6 +12,7 @@ smallbitvec = "2.4"
 [dev-dependencies]
 criterion = "0.3"
 stash = "*"
+slotmap = "*"
 rand = "0.7"
 
 [[bench]]
