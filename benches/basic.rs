@@ -1,5 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
 use rand::{thread_rng, Rng};
+use slab::Slab;
 use slotmap::{DefaultKey, SlotMap, HopSlotMap, DenseSlotMap};
 use stash::{Stash, UniqueStash};
 use store::Store;
@@ -12,6 +13,7 @@ fn inserts(c: &mut Criterion) {
     let s4: SlotMap<DefaultKey, usize> = SlotMap::new();
     let s5: HopSlotMap<DefaultKey, usize> = HopSlotMap::new();
     let s6: DenseSlotMap<DefaultKey, usize> = DenseSlotMap::new();
+    let s7: Slab<usize> = Slab::new();
 
     let mut g = c.benchmark_group("Inserts");
     g.bench_function("Store", |b| {
@@ -80,6 +82,17 @@ fn inserts(c: &mut Criterion) {
             BatchSize::SmallInput,
         );
     });
+    g.bench_function("Slab", |b| {
+        b.iter_batched_ref(
+            || s7.clone(),
+            |i| {
+                for a in 0..size {
+                    i.insert(a);
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
 }
 
 fn reinserts(c: &mut Criterion) {
@@ -94,6 +107,7 @@ fn reinserts(c: &mut Criterion) {
     let mut s5k = Vec::new();
     let mut s6: DenseSlotMap<DefaultKey, usize> = DenseSlotMap::new();
     let mut s6k = Vec::new();
+    let mut s7: Slab<usize> = Slab::new();
 
     for a in 0..size {
         s1.insert(a);
@@ -102,6 +116,7 @@ fn reinserts(c: &mut Criterion) {
         s4k.push(s4.insert(a));
         s5k.push(s5.insert(a));
         s6k.push(s6.insert(a));
+        s7.insert(a);
     }
     for a in 0..size {
         s1.remove(a);
@@ -110,6 +125,7 @@ fn reinserts(c: &mut Criterion) {
         s4.remove(s4k[a]);
         s5.remove(s5k[a]);
         s6.remove(s6k[a]);
+        s7.remove(a);
     }
     let mut g = c.benchmark_group("Re-inserts");
     g.bench_function("Store", |b| {
@@ -178,10 +194,20 @@ fn reinserts(c: &mut Criterion) {
             BatchSize::SmallInput,
         );
     });
+    g.bench_function("Slab", |b| {
+        b.iter_batched_ref(
+            || s7.clone(),
+            |i| {
+                for a in 0..size {
+                    i.insert(a);
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
 }
 fn remove(c: &mut Criterion) {
     let size = 10_000;
-    let mut rng = thread_rng();
     let mut s1: Store<usize, usize> = Store::new();
     let mut s2: Stash<usize, usize> = Stash::new();
     let mut s3: UniqueStash<usize> = UniqueStash::new();
@@ -192,6 +218,7 @@ fn remove(c: &mut Criterion) {
     let mut s5k = Vec::new();
     let mut s6: DenseSlotMap<DefaultKey, usize> = DenseSlotMap::new();
     let mut s6k = Vec::new();
+    let mut s7: Slab<usize> = Slab::new();
 
     for a in 0..size {
         s1.insert(a);
@@ -200,6 +227,7 @@ fn remove(c: &mut Criterion) {
         s4k.push(s4.insert(a));
         s5k.push(s5.insert(a));
         s6k.push(s6.insert(a));
+        s7.insert(a);
     }
 
     let mut g = c.benchmark_group("Remove");
@@ -207,8 +235,8 @@ fn remove(c: &mut Criterion) {
         b.iter_batched_ref(
             || s1.clone(),
             |i| {
-                for _ in 0..size {
-                    i.remove(rng.gen_range(0, size));
+                for a in 0..size {
+                    i.remove(a);
                 }
             },
             BatchSize::SmallInput,
@@ -218,8 +246,8 @@ fn remove(c: &mut Criterion) {
         b.iter_batched_ref(
             || s2.clone(),
             |i| {
-                for _ in 0..size {
-                    i.take(rng.gen_range(0, size));
+                for a in 0..size {
+                    i.take(a);
                 }
             },
             BatchSize::SmallInput,
@@ -229,8 +257,8 @@ fn remove(c: &mut Criterion) {
         b.iter_batched_ref(
             || s3.clone(),
             |i| {
-                for _ in 0..size {
-                    i.take(s3k[rng.gen_range(0, size)]);
+                for a in 0..size {
+                    i.take(s3k[a]);
                 }
             },
             BatchSize::SmallInput,
@@ -240,8 +268,8 @@ fn remove(c: &mut Criterion) {
         b.iter_batched_ref(
             || s4.clone(),
             |i| {
-                for _ in 0..size {
-                    i.remove(s4k[rng.gen_range(0, size)]);
+                for a in 0..size {
+                    i.remove(s4k[a]);
                 }
             },
             BatchSize::SmallInput,
@@ -251,8 +279,8 @@ fn remove(c: &mut Criterion) {
         b.iter_batched_ref(
             || s5.clone(),
             |i| {
-                for _ in 0..size {
-                    i.remove(s5k[rng.gen_range(0, size)]);
+                for a in 0..size {
+                    i.remove(s5k[a]);
                 }
             },
             BatchSize::SmallInput,
@@ -262,8 +290,19 @@ fn remove(c: &mut Criterion) {
         b.iter_batched_ref(
             || s6.clone(),
             |i| {
-                for _ in 0..size {
-                    i.remove(s6k[rng.gen_range(0, size)]);
+                for a in 0..size {
+                    i.remove(s6k[a]);
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
+    g.bench_function("Slab", |b| {
+        b.iter_batched_ref(
+            || s7.clone(),
+            |i| {
+                for a in 0..size {
+                    i.remove(a);
                 }
             },
             BatchSize::SmallInput,
@@ -284,6 +323,7 @@ fn get(c: &mut Criterion) {
     let mut s5k = Vec::new();
     let mut s6: DenseSlotMap<DefaultKey, usize> = DenseSlotMap::new();
     let mut s6k = Vec::new();
+    let mut s7: Slab<usize> = Slab::new();
 
     for a in 0..size {
         s1.insert(a);
@@ -292,6 +332,7 @@ fn get(c: &mut Criterion) {
         s4k.push(s4.insert(a));
         s5k.push(s5.insert(a));
         s6k.push(s6.insert(a));
+        s7.insert(a);
     }
     let mut g = c.benchmark_group("Get");
     g.bench_function("Store", |b| {
@@ -360,6 +401,17 @@ fn get(c: &mut Criterion) {
             BatchSize::SmallInput,
         );
     });
+    g.bench_function("Slab", |b| {
+        b.iter_batched_ref(
+            || s7.clone(),
+            |i| {
+                for _ in 0..size {
+                    black_box(i.get(rng.gen_range(0, size)));
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
 }
 
 fn iter(c: &mut Criterion) {
@@ -377,6 +429,8 @@ fn iter(c: &mut Criterion) {
     let mut s5k = Vec::new();
     let mut s6: DenseSlotMap<DefaultKey, usize> = DenseSlotMap::new();
     let mut s6k = Vec::new();
+    let mut s7: Slab<usize> = Slab::new();
+    let mut s7k = Vec::new();
 
     for a in 0..size {
         s1k.push(s1.insert(a));
@@ -385,6 +439,7 @@ fn iter(c: &mut Criterion) {
         s4k.push(s4.insert(a));
         s5k.push(s5.insert(a));
         s6k.push(s6.insert(a));
+        s7k.push(s7.insert(a));
     }
 
     let mut g = c.benchmark_group("Iterate");
@@ -454,6 +509,17 @@ fn iter(c: &mut Criterion) {
             BatchSize::SmallInput,
         )
     });
+    g.bench_function("Slab", |b| {
+        b.iter_batched_ref(
+            || s7.clone(),
+            |i| {
+                for a in i.iter() {
+                    black_box(a);
+                }
+            },
+            BatchSize::SmallInput,
+        )
+    });
     g.finish();
 
     for subset in ((size / 2)..size).rev() {
@@ -470,6 +536,8 @@ fn iter(c: &mut Criterion) {
         s5k.swap_remove(k);
         s6.remove(s6k[k]);
         s6k.swap_remove(k);
+        s7.remove(s7k[k]);
+        s7k.swap_remove(k);
     }
 
     let mut g = c.benchmark_group("Iterate half-full");
@@ -531,6 +599,17 @@ fn iter(c: &mut Criterion) {
     g.bench_function("DenseSlotMap", |b| {
         b.iter_batched_ref(
             || s6.clone(),
+            |i| {
+                for a in i.iter() {
+                    black_box(a);
+                }
+            },
+            BatchSize::SmallInput,
+        )
+    });
+    g.bench_function("Slab", |b| {
+        b.iter_batched_ref(
+            || s7.clone(),
             |i| {
                 for a in i.iter() {
                     black_box(a);
