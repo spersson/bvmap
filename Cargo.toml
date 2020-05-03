@@ -12,11 +12,12 @@ smallbitvec = "2.4"
 [dev-dependencies]
 beach_map = "*"
 criterion = "0.3"
-slab = "*"
-stash = "*"
-stable-vec = "*"
-slotmap = "*"
+id-vec = "*"
 rand = "0.7"
+slab = "*"
+slotmap = "*"
+stable-vec = "*"
+stash = "*"
 
 [[bench]]
 name = "basic"
