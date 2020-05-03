@@ -1,7 +1,8 @@
+use beach_map::BeachMap;
 use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
 use rand::{thread_rng, Rng};
 use slab::Slab;
-use slotmap::{DefaultKey, SlotMap, HopSlotMap, DenseSlotMap};
+use slotmap::{DefaultKey, DenseSlotMap, HopSlotMap, SlotMap};
 use stash::{Stash, UniqueStash};
 use store::Store;
 
@@ -86,6 +87,17 @@ fn inserts(c: &mut Criterion) {
         b.iter_batched_ref(
             || s7.clone(),
             |i| {
+                for a in 0..size {
+                    i.insert(a);
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
+    g.bench_function("BeachMap", |b| {
+        b.iter_batched(
+            || BeachMap::new(),
+            |mut i: BeachMap<usize, usize>| {
                 for a in 0..size {
                     i.insert(a);
                 }
@@ -205,6 +217,27 @@ fn reinserts(c: &mut Criterion) {
             BatchSize::SmallInput,
         );
     });
+    g.bench_function("BeachMap", |b| {
+        b.iter_batched(
+            || {
+                let mut s8: BeachMap<usize, usize> = BeachMap::new();
+                let mut s8k = Vec::new();
+                for a in 0..size {
+                    s8k.push(s8.insert(a));
+                }
+                for a in 0..size {
+                    s8.remove(s8k[a]);
+                }
+                s8
+            },
+            |mut i| {
+                for a in 0..size {
+                    i.insert(a);
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
 }
 fn remove(c: &mut Criterion) {
     let size = 10_000;
@@ -303,6 +336,24 @@ fn remove(c: &mut Criterion) {
             |i| {
                 for a in 0..size {
                     i.remove(a);
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
+    g.bench_function("BeachMap", |b| {
+        b.iter_batched(
+            || {
+                let mut s8: BeachMap<usize, usize> = BeachMap::new();
+                let mut s8k = Vec::new();
+                for a in 0..size {
+                    s8k.push(s8.insert(a));
+                }
+                (s8, s8k)
+            },
+            |(mut i, k)| {
+                for a in 0..size {
+                    i.remove(k[a]);
                 }
             },
             BatchSize::SmallInput,
@@ -407,6 +458,24 @@ fn get(c: &mut Criterion) {
             |i| {
                 for _ in 0..size {
                     black_box(i.get(rng.gen_range(0, size)));
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
+    g.bench_function("BeachMap", |b| {
+        b.iter_batched(
+            || {
+                let mut s8: BeachMap<usize, usize> = BeachMap::new();
+                let mut s8k = Vec::new();
+                for a in 0..size {
+                    s8k.push(s8.insert(a));
+                }
+                (s8, s8k)
+            },
+            |(i, k)| {
+                for _ in 0..size {
+                    black_box(i.get(k[rng.gen_range(0, size)]));
                 }
             },
             BatchSize::SmallInput,
@@ -520,6 +589,24 @@ fn iter(c: &mut Criterion) {
             BatchSize::SmallInput,
         )
     });
+    g.bench_function("BeachMap", |b| {
+        b.iter_batched(
+            || {
+                let mut s8: BeachMap<usize, usize> = BeachMap::new();
+                let mut s8k = Vec::new();
+                for a in 0..size {
+                    s8k.push(s8.insert(a));
+                }
+                s8
+            },
+            |i| {
+                for a in i.iter() {
+                    black_box(a);
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
     g.finish();
 
     for subset in ((size / 2)..size).rev() {
@@ -617,6 +704,29 @@ fn iter(c: &mut Criterion) {
             },
             BatchSize::SmallInput,
         )
+    });
+    g.bench_function("BeachMap", |b| {
+        b.iter_batched(
+            || {
+                let mut s8: BeachMap<usize, usize> = BeachMap::new();
+                let mut s8k = Vec::new();
+                for a in 0..size {
+                    s8k.push(s8.insert(a));
+                }
+                for subset in ((size / 2)..size).rev() {
+                    let k = rng.gen_range(0, subset);
+                    s8.remove(s8k[k]);
+                    s8k.swap_remove(k);
+                }
+                s8
+            },
+            |i| {
+                for a in i.iter() {
+                    black_box(a);
+                }
+            },
+            BatchSize::SmallInput,
+        );
     });
 }
 

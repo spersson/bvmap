@@ -10,6 +10,7 @@ edition = "2018"
 smallbitvec = "2.4"
 
 [dev-dependencies]
+beach_map = "*"
 criterion = "0.3"
 slab = "*"
 stash = "*"
