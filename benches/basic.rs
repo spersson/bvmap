@@ -3,6 +3,7 @@ use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion
 use rand::{thread_rng, Rng};
 use slab::Slab;
 use slotmap::{DefaultKey, DenseSlotMap, HopSlotMap, SlotMap};
+use stable_vec::{ExternStableVec, InlineStableVec};
 use stash::{Stash, UniqueStash};
 use store::Store;
 
@@ -15,6 +16,8 @@ fn inserts(c: &mut Criterion) {
     let s5: HopSlotMap<DefaultKey, usize> = HopSlotMap::new();
     let s6: DenseSlotMap<DefaultKey, usize> = DenseSlotMap::new();
     let s7: Slab<usize> = Slab::new();
+    let s9: ExternStableVec<usize> = ExternStableVec::new();
+    let s10: InlineStableVec<usize> = InlineStableVec::new();
 
     let mut g = c.benchmark_group("Inserts");
     g.bench_function("Store", |b| {
@@ -105,6 +108,28 @@ fn inserts(c: &mut Criterion) {
             BatchSize::SmallInput,
         );
     });
+    g.bench_function("ExternStableVec", |b| {
+        b.iter_batched_ref(
+            || s9.clone(),
+            |i| {
+                for a in 0..size {
+                    i.push(a);
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
+    g.bench_function("InlineStableVec", |b| {
+        b.iter_batched_ref(
+            || s10.clone(),
+            |i| {
+                for a in 0..size {
+                    i.push(a);
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
 }
 
 fn reinserts(c: &mut Criterion) {
@@ -120,6 +145,8 @@ fn reinserts(c: &mut Criterion) {
     let mut s6: DenseSlotMap<DefaultKey, usize> = DenseSlotMap::new();
     let mut s6k = Vec::new();
     let mut s7: Slab<usize> = Slab::new();
+    let mut s9: ExternStableVec<usize> = ExternStableVec::new();
+    let mut s10: InlineStableVec<usize> = InlineStableVec::new();
 
     for a in 0..size {
         s1.insert(a);
@@ -129,6 +156,8 @@ fn reinserts(c: &mut Criterion) {
         s5k.push(s5.insert(a));
         s6k.push(s6.insert(a));
         s7.insert(a);
+        s9.push(a);
+        s10.push(a);
     }
     for a in 0..size {
         s1.remove(a);
@@ -138,6 +167,8 @@ fn reinserts(c: &mut Criterion) {
         s5.remove(s5k[a]);
         s6.remove(s6k[a]);
         s7.remove(a);
+        s9.remove(a);
+        s10.remove(a);
     }
     let mut g = c.benchmark_group("Re-inserts");
     g.bench_function("Store", |b| {
@@ -238,6 +269,28 @@ fn reinserts(c: &mut Criterion) {
             BatchSize::SmallInput,
         );
     });
+    g.bench_function("ExternStableVec", |b| {
+        b.iter_batched_ref(
+            || s9.clone(),
+            |i| {
+                for a in 0..size {
+                    i.push(a);
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
+    g.bench_function("InlineStableVec", |b| {
+        b.iter_batched_ref(
+            || s10.clone(),
+            |i| {
+                for a in 0..size {
+                    i.push(a);
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
 }
 fn remove(c: &mut Criterion) {
     let size = 10_000;
@@ -252,6 +305,8 @@ fn remove(c: &mut Criterion) {
     let mut s6: DenseSlotMap<DefaultKey, usize> = DenseSlotMap::new();
     let mut s6k = Vec::new();
     let mut s7: Slab<usize> = Slab::new();
+    let mut s9: ExternStableVec<usize> = ExternStableVec::new();
+    let mut s10: InlineStableVec<usize> = InlineStableVec::new();
 
     for a in 0..size {
         s1.insert(a);
@@ -261,6 +316,8 @@ fn remove(c: &mut Criterion) {
         s5k.push(s5.insert(a));
         s6k.push(s6.insert(a));
         s7.insert(a);
+        s9.push(a);
+        s10.push(a);
     }
 
     let mut g = c.benchmark_group("Remove");
@@ -359,6 +416,28 @@ fn remove(c: &mut Criterion) {
             BatchSize::SmallInput,
         );
     });
+    g.bench_function("ExternStableVec", |b| {
+        b.iter_batched_ref(
+            || s9.clone(),
+            |i| {
+                for a in 0..size {
+                    i.remove(a);
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
+    g.bench_function("InlineStableVec", |b| {
+        b.iter_batched_ref(
+            || s10.clone(),
+            |i| {
+                for a in 0..size {
+                    i.remove(a);
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
 }
 
 fn get(c: &mut Criterion) {
@@ -375,6 +454,8 @@ fn get(c: &mut Criterion) {
     let mut s6: DenseSlotMap<DefaultKey, usize> = DenseSlotMap::new();
     let mut s6k = Vec::new();
     let mut s7: Slab<usize> = Slab::new();
+    let mut s9: ExternStableVec<usize> = ExternStableVec::new();
+    let mut s10: InlineStableVec<usize> = InlineStableVec::new();
 
     for a in 0..size {
         s1.insert(a);
@@ -384,6 +465,8 @@ fn get(c: &mut Criterion) {
         s5k.push(s5.insert(a));
         s6k.push(s6.insert(a));
         s7.insert(a);
+        s9.push(a);
+        s10.push(a);
     }
     let mut g = c.benchmark_group("Get");
     g.bench_function("Store", |b| {
@@ -481,6 +564,28 @@ fn get(c: &mut Criterion) {
             BatchSize::SmallInput,
         );
     });
+    g.bench_function("ExternStableVec", |b| {
+        b.iter_batched_ref(
+            || s9.clone(),
+            |i| {
+                for _ in 0..size {
+                    black_box(i.get(rng.gen_range(0, size)));
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
+    g.bench_function("InlineStableVec", |b| {
+        b.iter_batched_ref(
+            || s10.clone(),
+            |i| {
+                for _ in 0..size {
+                    black_box(i.get(rng.gen_range(0, size)));
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
 }
 
 fn iter(c: &mut Criterion) {
@@ -500,6 +605,10 @@ fn iter(c: &mut Criterion) {
     let mut s6k = Vec::new();
     let mut s7: Slab<usize> = Slab::new();
     let mut s7k = Vec::new();
+    let mut s9: ExternStableVec<usize> = ExternStableVec::new();
+    let mut s9k = Vec::new();
+    let mut s10: InlineStableVec<usize> = InlineStableVec::new();
+    let mut s10k = Vec::new();
 
     for a in 0..size {
         s1k.push(s1.insert(a));
@@ -509,6 +618,8 @@ fn iter(c: &mut Criterion) {
         s5k.push(s5.insert(a));
         s6k.push(s6.insert(a));
         s7k.push(s7.insert(a));
+        s9k.push(s9.push(a));
+        s10k.push(s10.push(a));
     }
 
     let mut g = c.benchmark_group("Iterate");
@@ -607,6 +718,28 @@ fn iter(c: &mut Criterion) {
             BatchSize::SmallInput,
         );
     });
+    g.bench_function("ExternStableVec", |b| {
+        b.iter_batched_ref(
+            || s9.clone(),
+            |i| {
+                for a in i.iter() {
+                    black_box(a);
+                }
+            },
+            BatchSize::SmallInput,
+        )
+    });
+    g.bench_function("InlineStableVec", |b| {
+        b.iter_batched_ref(
+            || s10.clone(),
+            |i| {
+                for a in i.iter() {
+                    black_box(a);
+                }
+            },
+            BatchSize::SmallInput,
+        )
+    });
     g.finish();
 
     for subset in ((size / 2)..size).rev() {
@@ -625,6 +758,10 @@ fn iter(c: &mut Criterion) {
         s6k.swap_remove(k);
         s7.remove(s7k[k]);
         s7k.swap_remove(k);
+        s9.remove(s9k[k]);
+        s9k.swap_remove(k);
+        s10.remove(s10k[k]);
+        s10k.swap_remove(k);
     }
 
     let mut g = c.benchmark_group("Iterate half-full");
@@ -727,6 +864,28 @@ fn iter(c: &mut Criterion) {
             },
             BatchSize::SmallInput,
         );
+    });
+    g.bench_function("ExternStableVec", |b| {
+        b.iter_batched_ref(
+            || s9.clone(),
+            |i| {
+                for a in i.iter() {
+                    black_box(a);
+                }
+            },
+            BatchSize::SmallInput,
+        )
+    });
+    g.bench_function("InlineStableVec", |b| {
+        b.iter_batched_ref(
+            || s10.clone(),
+            |i| {
+                for a in i.iter() {
+                    black_box(a);
+                }
+            },
+            BatchSize::SmallInput,
+        )
     });
 }
 

@@ -14,6 +14,7 @@ beach_map = "*"
 criterion = "0.3"
 slab = "*"
 stash = "*"
+stable-vec = "*"
 slotmap = "*"
 rand = "0.7"
 
