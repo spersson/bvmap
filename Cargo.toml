@@ -11,6 +11,7 @@ smallbitvec = "2.4"
 
 [dev-dependencies]
 beach_map = "*"
+compactmap = "*"
 criterion = "0.3"
 id-vec = "*"
 rand = "0.7"
