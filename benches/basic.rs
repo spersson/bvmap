@@ -1,6 +1,7 @@
 use beach_map::BeachMap;
 use compactmap::CompactMap;
 use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
+use froggy::Storage;
 use id_vec::IdVec;
 use rand::{thread_rng, Rng};
 use slab::Slab;
@@ -151,6 +152,17 @@ fn inserts(c: &mut Criterion) {
             |i| {
                 for a in 0..size {
                     i.insert(a);
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
+    g.bench_function("Froggy", |b| {
+        b.iter_batched(
+            || Storage::new(),
+            |mut i: Storage<usize>| {
+                for a in 0..size {
+                    i.create(a);
                 }
             },
             BatchSize::SmallInput,
@@ -346,6 +358,26 @@ fn reinserts(c: &mut Criterion) {
             BatchSize::SmallInput,
         );
     });
+    g.bench_function("Froggy", |b| {
+        b.iter_batched(
+            || {
+                let mut s13: Storage<usize> = Storage::new();
+                let mut s13k = Vec::new();
+                for a in 0..size {
+                    s13k.push(s13.create(a));
+                }
+                drop(s13k);
+                s13.sync_pending();
+                s13
+            },
+            |mut i| {
+                for a in 0..size {
+                    i.create(a);
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
 }
 fn remove(c: &mut Criterion) {
     let size = 10_000;
@@ -520,6 +552,23 @@ fn remove(c: &mut Criterion) {
             BatchSize::SmallInput,
         );
     });
+    g.bench_function("Froggy", |b| {
+        b.iter_batched(
+            || {
+                let mut s13: Storage<usize> = Storage::new();
+                let mut s13k = Vec::new();
+                for a in 0..size {
+                    s13k.push(s13.create(a));
+                }
+                (s13, s13k)
+            },
+            |(mut i, k)| {
+                drop(k);
+                i.sync_pending();
+            },
+            BatchSize::SmallInput,
+        );
+    });
 }
 
 fn get(c: &mut Criterion) {
@@ -690,6 +739,24 @@ fn get(c: &mut Criterion) {
             |i| {
                 for _ in 0..size {
                     black_box(i.get(rng.gen_range(0, size)));
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
+    g.bench_function("Froggy", |b| {
+        b.iter_batched(
+            || {
+                let mut s13: Storage<usize> = Storage::new();
+                let mut s13k = Vec::new();
+                for a in 0..size {
+                    s13k.push(s13.create(a));
+                }
+                (s13, s13k)
+            },
+            |(i, k)| {
+                for _ in 0..size {
+                    black_box(i[&k[rng.gen_range(0, size)]]);
                 }
             },
             BatchSize::SmallInput,
@@ -877,6 +944,24 @@ fn iter(c: &mut Criterion) {
             BatchSize::SmallInput,
         )
     });
+    g.bench_function("Froggy", |b| {
+        b.iter_batched(
+            || {
+                let mut s13: Storage<usize> = Storage::new();
+                let mut s13k = Vec::new();
+                for a in 0..size {
+                    s13k.push(s13.create(a));
+                }
+                (s13, s13k)
+            },
+            |(i, _k)| {
+                for a in i.iter() {
+                    black_box(a);
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
     g.finish();
 
     for subset in ((size / 2)..size).rev() {
@@ -1049,6 +1134,29 @@ fn iter(c: &mut Criterion) {
             },
             BatchSize::SmallInput,
         )
+    });
+    g.bench_function("Froggy", |b| {
+        b.iter_batched(
+            || {
+                let mut s13: Storage<usize> = Storage::new();
+                let mut s13k = Vec::new();
+                for a in 0..size {
+                    s13k.push(s13.create(a));
+                }
+                for subset in ((size / 2)..size).rev() {
+                    let k = rng.gen_range(0, subset);
+                    s13k.swap_remove(k);
+                }
+                s13.sync_pending();
+                (s13, s13k)
+            },
+            |(i, _k)| {
+                for a in i.iter() {
+                    black_box(a);
+                }
+            },
+            BatchSize::SmallInput,
+        );
     });
 }
 
