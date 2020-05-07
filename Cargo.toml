@@ -1,5 +1,5 @@
 [package]
-name = "store"
+name = "bvmap"
 version = "0.1.0"
 authors = ["Simon Persson <simon.persson@mykolab.com>"]
 edition = "2018"

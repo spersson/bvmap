@@ -9,16 +9,16 @@ union Slot<V> {
 }
 
 #[derive(Default)]
-pub struct Store<K, V> {
+pub struct BvMap<K, V> {
     next_free: usize,
     bitvec: SmallBitVec,
     vec: Vec<Slot<V>>,
     marker: PhantomData<fn(K) -> K>,
 }
 
-impl<K: Into<usize> + From<usize>, V> Store<K, V> {
-    pub fn new() -> Store<K, V> {
-        Store {
+impl<K: Into<usize> + From<usize>, V> BvMap<K, V> {
+    pub fn new() -> BvMap<K, V> {
+        BvMap {
             next_free: 0,
             bitvec: SmallBitVec::new(),
             vec: Vec::new(),
@@ -84,7 +84,7 @@ impl<K: Into<usize> + From<usize>, V> Store<K, V> {
     }
 }
 
-impl<K, V: Clone> Clone for Store<K, V> {
+impl<K, V: Clone> Clone for BvMap<K, V> {
     fn clone(&self) -> Self {
         let mut vec: Vec<Slot<V>> = Vec::with_capacity(self.vec.len());
         for (slot, occupied) in self.vec.iter().zip(self.bitvec.iter()) {
@@ -98,7 +98,7 @@ impl<K, V: Clone> Clone for Store<K, V> {
                 }
             });
         }
-        Store {
+        BvMap {
             vec,
             bitvec: self.bitvec.clone(),
             next_free: self.next_free,
@@ -107,7 +107,7 @@ impl<K, V: Clone> Clone for Store<K, V> {
     }
 }
 
-impl<K, V> Drop for Store<K, V> {
+impl<K, V> Drop for BvMap<K, V> {
     fn drop(&mut self) {
         if needs_drop::<V>() {
             for (slot, occupied) in self.vec.drain(..).zip(self.bitvec.iter()) {
@@ -121,15 +121,15 @@ impl<K, V> Drop for Store<K, V> {
 
 #[cfg(test)]
 mod tests {
-    use crate::Store;
+    use crate::BvMap;
     #[test]
     fn basic() {
-        let mut store: Store<usize, usize> = Store::new();
-        let a1 = store.insert(11);
-        let a2 = store.insert(12);
-        assert_eq!(store.get(a1), Some(&11));
-        assert_eq!(store.get(34), None);
-        assert_eq!(store.remove(a2), Some(12));
-        assert_eq!(store.get(a2), None);
+        let mut bvmap: BvMap<usize, usize> = BvMap::new();
+        let a1 = bvmap.insert(11);
+        let a2 = bvmap.insert(12);
+        assert_eq!(bvmap.get(a1), Some(&11));
+        assert_eq!(bvmap.get(34), None);
+        assert_eq!(bvmap.remove(a2), Some(12));
+        assert_eq!(bvmap.get(a2), None);
     }
 }

@@ -8,11 +8,11 @@ use slab::Slab;
 use slotmap::{DefaultKey, DenseSlotMap, HopSlotMap, SlotMap};
 use stable_vec::{ExternStableVec, InlineStableVec};
 use stash::{Stash, UniqueStash};
-use store::Store;
+use bvmap::BvMap;
 
 fn inserts(c: &mut Criterion) {
     let size = 10_000;
-    let s1: Store<usize, usize> = Store::new();
+    let s1: BvMap<usize, usize> = BvMap::new();
     let s2: Stash<usize, usize> = Stash::new();
     let s3: UniqueStash<usize> = UniqueStash::new();
     let s4: SlotMap<DefaultKey, usize> = SlotMap::new();
@@ -25,7 +25,7 @@ fn inserts(c: &mut Criterion) {
     let s12: CompactMap<usize> = CompactMap::new();
 
     let mut g = c.benchmark_group("Inserts");
-    g.bench_function("Store", |b| {
+    g.bench_function("BvMap", |b| {
         b.iter_batched_ref(
             || s1.clone(),
             |i| {
@@ -172,7 +172,7 @@ fn inserts(c: &mut Criterion) {
 
 fn reinserts(c: &mut Criterion) {
     let size = 10_000;
-    let mut s1: Store<usize, usize> = Store::new();
+    let mut s1: BvMap<usize, usize> = BvMap::new();
     let mut s2: Stash<usize, usize> = Stash::new();
     let mut s3: UniqueStash<usize> = UniqueStash::new();
     let mut s3k = Vec::new();
@@ -216,7 +216,7 @@ fn reinserts(c: &mut Criterion) {
         s12.remove(a);
     }
     let mut g = c.benchmark_group("Re-inserts");
-    g.bench_function("Store", |b| {
+    g.bench_function("BvMap", |b| {
         b.iter_batched_ref(
             || s1.clone(),
             |i| {
@@ -381,7 +381,7 @@ fn reinserts(c: &mut Criterion) {
 }
 fn remove(c: &mut Criterion) {
     let size = 10_000;
-    let mut s1: Store<usize, usize> = Store::new();
+    let mut s1: BvMap<usize, usize> = BvMap::new();
     let mut s2: Stash<usize, usize> = Stash::new();
     let mut s3: UniqueStash<usize> = UniqueStash::new();
     let mut s3k = Vec::new();
@@ -413,7 +413,7 @@ fn remove(c: &mut Criterion) {
     }
 
     let mut g = c.benchmark_group("Remove");
-    g.bench_function("Store", |b| {
+    g.bench_function("BvMap", |b| {
         b.iter_batched_ref(
             || s1.clone(),
             |i| {
@@ -574,7 +574,7 @@ fn remove(c: &mut Criterion) {
 fn get(c: &mut Criterion) {
     let size = 10_000;
     let mut rng = thread_rng();
-    let mut s1: Store<usize, usize> = Store::new();
+    let mut s1: BvMap<usize, usize> = BvMap::new();
     let mut s2: Stash<usize, usize> = Stash::new();
     let mut s3: UniqueStash<usize> = UniqueStash::new();
     let mut s3k = Vec::new();
@@ -605,7 +605,7 @@ fn get(c: &mut Criterion) {
         s12.insert(a);
     }
     let mut g = c.benchmark_group("Get");
-    g.bench_function("Store", |b| {
+    g.bench_function("BvMap", |b| {
         b.iter_batched_ref(
             || s1.clone(),
             |i| {
@@ -767,7 +767,7 @@ fn get(c: &mut Criterion) {
 fn iter(c: &mut Criterion) {
     let size = 10_000;
     let mut rng = thread_rng();
-    let mut s1: Store<usize, usize> = Store::new();
+    let mut s1: BvMap<usize, usize> = BvMap::new();
     let mut s1k = Vec::new();
     let mut s2: Stash<usize, usize> = Stash::new();
     let mut s2k = Vec::new();
@@ -805,7 +805,7 @@ fn iter(c: &mut Criterion) {
     }
 
     let mut g = c.benchmark_group("Iterate");
-    g.bench_function("Store", |b| {
+    g.bench_function("BvMap", |b| {
         b.iter_batched_ref(
             || s1.clone(),
             |i| {
@@ -991,7 +991,7 @@ fn iter(c: &mut Criterion) {
     }
 
     let mut g = c.benchmark_group("Iterate half-full");
-    g.bench_function("Store", |b| {
+    g.bench_function("BvMap", |b| {
         b.iter_batched_ref(
             || s1.clone(),
             |i| {
