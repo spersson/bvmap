@@ -2,6 +2,7 @@ use beach_map::BeachMap;
 use compactmap::CompactMap;
 use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
 use froggy::Storage;
+use generational_arena::Arena;
 use id_vec::IdVec;
 use rand::{thread_rng, Rng};
 use slab::Slab;
@@ -23,6 +24,7 @@ fn inserts(c: &mut Criterion) {
     let s10: InlineStableVec<usize> = InlineStableVec::new();
     let s11: IdVec<usize> = IdVec::new();
     let s12: CompactMap<usize> = CompactMap::new();
+    let s14: Arena<usize> = Arena::new();
 
     let mut g = c.benchmark_group("Inserts");
     g.bench_function("BvMap", |b| {
@@ -168,6 +170,17 @@ fn inserts(c: &mut Criterion) {
             BatchSize::SmallInput,
         );
     });
+    g.bench_function("GeneraionalArena", |b| {
+        b.iter_batched_ref(
+            || s14.clone(),
+            |i| {
+                for a in 0..size {
+                    i.insert(a);
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
 }
 
 fn reinserts(c: &mut Criterion) {
@@ -188,6 +201,8 @@ fn reinserts(c: &mut Criterion) {
     let mut s11: IdVec<usize> = IdVec::new();
     let mut s11k = Vec::new();
     let mut s12: CompactMap<usize> = CompactMap::new();
+    let mut s14: Arena<usize> = Arena::new();
+    let mut s14k = Vec::new();
 
     for a in 0..size {
         s1.insert(a);
@@ -201,6 +216,7 @@ fn reinserts(c: &mut Criterion) {
         s10.push(a);
         s11k.push(s11.insert(a));
         s12.insert(a);
+        s14k.push(s14.insert(a));
     }
     for a in 0..size {
         s1.remove(a);
@@ -214,6 +230,7 @@ fn reinserts(c: &mut Criterion) {
         s10.remove(a);
         s11.remove(s11k[a]);
         s12.remove(a);
+        s14.remove(s14k[a]);
     }
     let mut g = c.benchmark_group("Re-inserts");
     g.bench_function("BvMap", |b| {
@@ -378,6 +395,17 @@ fn reinserts(c: &mut Criterion) {
             BatchSize::SmallInput,
         );
     });
+    g.bench_function("GenerationalArena", |b| {
+        b.iter_batched_ref(
+            || s14.clone(),
+            |i| {
+                for a in 0..size {
+                    i.insert(a);
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
 }
 fn remove(c: &mut Criterion) {
     let size = 10_000;
@@ -397,6 +425,8 @@ fn remove(c: &mut Criterion) {
     let mut s11: IdVec<usize> = IdVec::new();
     let mut s11k = Vec::new();
     let mut s12: CompactMap<usize> = CompactMap::new();
+    let mut s14: Arena<usize> = Arena::new();
+    let mut s14k = Vec::new();
 
     for a in 0..size {
         s1.insert(a);
@@ -410,6 +440,7 @@ fn remove(c: &mut Criterion) {
         s10.push(a);
         s11k.push(s11.insert(a));
         s12.insert(a);
+        s14k.push(s14.insert(a));
     }
 
     let mut g = c.benchmark_group("Remove");
@@ -569,6 +600,17 @@ fn remove(c: &mut Criterion) {
             BatchSize::SmallInput,
         );
     });
+    g.bench_function("GenerationalArena", |b| {
+        b.iter_batched_ref(
+            || s14.clone(),
+            |i| {
+                for a in 0..size {
+                    i.remove(s14k[a]);
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
 }
 
 fn get(c: &mut Criterion) {
@@ -590,6 +632,8 @@ fn get(c: &mut Criterion) {
     let mut s11: IdVec<usize> = IdVec::new();
     let mut s11k = Vec::new();
     let mut s12: CompactMap<usize> = CompactMap::new();
+    let mut s14: Arena<usize> = Arena::new();
+    let mut s14k = Vec::new();
 
     for a in 0..size {
         s1.insert(a);
@@ -603,6 +647,7 @@ fn get(c: &mut Criterion) {
         s10.push(a);
         s11k.push(s11.insert(a));
         s12.insert(a);
+        s14k.push(s14.insert(a));
     }
     let mut g = c.benchmark_group("Get");
     g.bench_function("BvMap", |b| {
@@ -762,6 +807,17 @@ fn get(c: &mut Criterion) {
             BatchSize::SmallInput,
         );
     });
+    g.bench_function("GenerationalArena", |b| {
+        b.iter_batched_ref(
+            || s14.clone(),
+            |i| {
+                for _ in 0..size {
+                    black_box(i.get(s14k[rng.gen_range(0, size)]));
+                }
+            },
+            BatchSize::SmallInput,
+        );
+    });
 }
 
 fn iter(c: &mut Criterion) {
@@ -789,6 +845,8 @@ fn iter(c: &mut Criterion) {
     let mut s11k = Vec::new();
     let mut s12: CompactMap<usize> = CompactMap::new();
     let mut s12k = Vec::new();
+    let mut s14: Arena<usize> = Arena::new();
+    let mut s14k = Vec::new();
 
     for a in 0..size {
         s1k.push(s1.insert(a));
@@ -802,6 +860,7 @@ fn iter(c: &mut Criterion) {
         s10k.push(s10.push(a));
         s11k.push(s11.insert(a));
         s12k.push(s12.insert(a));
+        s14k.push(s14.insert(a));
     }
 
     let mut g = c.benchmark_group("Iterate");
@@ -962,6 +1021,17 @@ fn iter(c: &mut Criterion) {
             BatchSize::SmallInput,
         );
     });
+    g.bench_function("GenerationalArena", |b| {
+        b.iter_batched_ref(
+            || s14.clone(),
+            |i| {
+                for a in i.iter() {
+                    black_box(a);
+                }
+            },
+            BatchSize::SmallInput,
+        )
+    });
     g.finish();
 
     for subset in ((size / 2)..size).rev() {
@@ -988,6 +1058,8 @@ fn iter(c: &mut Criterion) {
         s11k.swap_remove(k);
         s12.remove(s12k[k]);
         s12k.swap_remove(k);
+        s14.remove(s14k[k]);
+        s14k.swap_remove(k);
     }
 
     let mut g = c.benchmark_group("Iterate half-full");
@@ -1157,6 +1229,17 @@ fn iter(c: &mut Criterion) {
             },
             BatchSize::SmallInput,
         );
+    });
+    g.bench_function("GenerationalArena", |b| {
+        b.iter_batched_ref(
+            || s14.clone(),
+            |i| {
+                for a in i.iter() {
+                    black_box(a);
+                }
+            },
+            BatchSize::SmallInput,
+        )
     });
 }
 
