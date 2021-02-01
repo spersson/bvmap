@@ -1,4 +1,3 @@
-#![feature(untagged_unions)]
 use smallbitvec::SmallBitVec;
 use std::marker::PhantomData;
 use std::mem::{needs_drop, replace, ManuallyDrop};
